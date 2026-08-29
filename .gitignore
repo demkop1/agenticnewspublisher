@@ -1,0 +1,8 @@
+.env
+__pycache__/
+*.pyc
+*.session
+*.session-journal
+
+#Remove unneeded folders
+telegram_client/

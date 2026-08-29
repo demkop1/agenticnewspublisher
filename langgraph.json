@@ -1,0 +1,7 @@
+{
+    "dependencies": ["."],
+    "graphs": {
+        "graph": "./agent/graph.py:graph"
+    },
+    "env": ".env"
+}
