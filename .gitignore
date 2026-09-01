@@ -4,5 +4,7 @@ __pycache__/
 *.session
 *.session-journal
 
+.langgraph_api/
+
 #Remove unneeded folders
 telegram_client/

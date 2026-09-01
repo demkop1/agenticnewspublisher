@@ -2,14 +2,7 @@ import dotenv
 dotenv.load_dotenv()
 import os
 
-if not os.environ['USER_PROFILE']:
-    if os.environ['USER_PROFILE_FILEPATH']:
-        with open(os.environ['USER_PROFILE_FILEPATH'], 'r') as f:
-            user_profile = f.read()
-    else:
-        raise FileNotFoundError("Specify either USER_PROFILE or USER_PROFILE_FILEPATH in your environment!")
-else:
-    user_profile = os.environ['USER_PROFILE']
+from agent.state import USER_PROFILE
 
 import re
 STRING_EXTRACTOR = re.compile(r"\*\*(.*?)\*\*")
@@ -21,9 +14,9 @@ from langchain_core.prompts import ChatPromptTemplate, SystemMessagePromptTempla
 SEARCH_SYSTEM_PROMPT = SystemMessage(
 f"""
 You are an AI agent that generates the query to search for the recent news according to the following user profile and his preferences:
-{user_profile}.
+{USER_PROFILE}.
 
-Type the query surrounded by **.
+Type the query has to be surrounded by ** and contain at most 100 characters. The query should be consistent with NewsAPI.
 """
 )
 

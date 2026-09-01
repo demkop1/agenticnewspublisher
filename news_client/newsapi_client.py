@@ -7,7 +7,6 @@ import requests
 
 API_BASE = "https://newsapi.org/v2"
 
-
 class NewsAPIClient:
     def __init__(self, api_key: str = None):
         self.api_key = (
@@ -52,14 +51,17 @@ class NewsAPIClient:
 if __name__ == "__main__":
     import os
     import sys
+    import datetime
     from dotenv import load_dotenv
 
     PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     env_path = os.path.join(PROJECT_ROOT, ".env")
     load_dotenv(PROJECT_ROOT)
-    # print(os.environ)
+    
     news = NewsAPIClient()
-    articles = news.get_top_headlines(query="Ukraine")
-    print(articles[0].keys())
+    # articles = news.get_top_headlines( query="war in Ukraine" )
+    articles = news.search( query="war in Ukraine" )
+    # print(articles[0].keys())
+
     for a in articles[:5]:
-        print(f"- {a['title']} ({a['source']['name']})")
+        print(f"- {a['title']} {a['content']} ({a['source']['name']}) - { a['publishedAt'] }")
