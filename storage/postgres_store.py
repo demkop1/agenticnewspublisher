@@ -28,11 +28,6 @@ def _connection_string() -> str:
 
 
 def article_id(document: Document) -> str:
-    """Deterministic id derived from the article URL.
-
-    Re-fetching the same article always yields the same id, so storing it
-    again updates the existing row instead of creating a duplicate.
-    """
     key = document.metadata.get("url") or document.page_content
     return str(uuid.uuid5(_ID_NAMESPACE, key))
 
