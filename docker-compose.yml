@@ -1,15 +1,15 @@
 services:
   postgres:
-    image: pgvector/pgvector:pg16
+    image: pgvector/pgvector:pg18
     restart: unless-stopped
     environment:
       POSTGRES_USER: news
       POSTGRES_PASSWORD: news
       POSTGRES_DB: news
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - pgvector_data:/var/lib/postgresql/data
 
 volumes:
-  postgres_data:
+  pgvector_data:

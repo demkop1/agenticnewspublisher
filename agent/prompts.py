@@ -1,4 +1,4 @@
-from config import AGENT_NAMES
+from agent.config import AGENT_NAMES
 from agent.state import USER_PROFILE
 
 import re
@@ -16,17 +16,22 @@ Type the query has to be surrounded by ** and contain at most 100 characters. Th
 """
 )
 
-ORCHESTRATOR_SYSTEM_PROMPT = SystemMessage(
+ORCHESTRATOR_SYSTEM_PROMPT_TEMPLATE = SystemMessagePromptTemplate.from_template(
 """
-You are an orchestrator, you have to manage in the most efficient way possible the following agents: %s. 
+You are an orchestrator, you have to manage in the most efficient way possible the following agents: %s.
 You are given with the following information about the state:
     - search_query: {search_query}
     - current_articles: {current_articles}.
+    - user_preferences: %s
+
 You will also provided with the so-far published articles below (If there are none or you dont see them, ignore it).
-""" % (AGENT_NAMES)
+""" % (AGENT_NAMES, USER_PROFILE)
 )
 ORCHESTRATOR_SYSTEM_PROMPT2 = SystemMessage(
 """
 Based on the state information and the published articles above, choose the next agent to operate on.
+You may also write a short additional prompt for that agent with extra instructions or context for
+this run (e.g. narrow the search, focus on a specific angle) — leave it empty if the agent's default
+behavior is enough.
 """
 )

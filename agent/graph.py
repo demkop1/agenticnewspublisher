@@ -1,6 +1,6 @@
 import os
 from typing import Literal
-from config import AGENT_NAMES
+from agent.config import AGENT_NAMES
 
 from langchain_core.documents import Document
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
@@ -8,7 +8,8 @@ from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from news_client.newsapi_client import NewsAPIClient
 import re
 from agent.prompts import *
-from structured_outputs import OrchestratorDecision
+from langchain_core.messages import SystemMessage, HumanMessage
+from agent.structured_outputs import OrchestratorDecision
 
 from langgraph.graph import StateGraph, START, END
 from langgraph.types import Command
@@ -21,25 +22,34 @@ embeddings_model = OpenAIEmbeddings()
 newsapi_client = NewsAPIClient()
 
 def orchestrator_node(state: NewsState) -> Command[AGENT_NAMES]:
-    if not state.get("search_query"):
-        return Command(goto="search_worker")
-
+    # if not state.get("search_query"):
+    #     return Command(goto="search_worker")
     structured_llm = llm.with_structured_output(OrchestratorDecision)
     messages = [
-        ("system", ORCHESTRATOR_SYSTEM_PROMPT),
-        *[("user", a) for a in state["published_articles"]],
-        ("system", ORCHESTRATOR_SYSTEM_PROMPT2)
+        ORCHESTRATOR_SYSTEM_PROMPT_TEMPLATE.format(**{
+            "search_query": state.get("search_query", ""),
+            "current_articles": state.get("top_headlines")
+        }),
+        *[HumanMessage(a) for a in state.get("published_articles", [])],
+        ORCHESTRATOR_SYSTEM_PROMPT2
     ]
     response = structured_llm.invoke(messages)
-    
-    return Command(goto=response.next_agent)
+
+    update = {}
+    if response.agent_prompt:
+        update["agent_chats"] = {response.next_agent: [HumanMessage(response.agent_prompt)]}
+
+    return Command(goto=response.next_agent, update=update)
 
 
 def search_worker(state: NewsState) -> NewsState:
-    response = llm.invoke([SEARCH_SYSTEM_PROMPT])
+    chat_history = state.get("agent_chats", {}).get("search_worker", [])
+    messages = [SEARCH_SYSTEM_PROMPT, *[m for m in chat_history]]
+
+    response = llm.invoke(messages)
     search_query = re.findall(STRING_EXTRACTOR, response.content)[-1]
 
-    return {"search_query": search_query}
+    return {"search_query": search_query, "agent_chats": {"search_worker": [AIMessage(search_query)]}}
 
 
 def fetch_articles_worker(state: NewsState) -> NewsState:
