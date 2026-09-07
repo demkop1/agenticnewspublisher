@@ -6,5 +6,6 @@ __pycache__/
 
 .langgraph_api/
 
-#Remove unneeded folders
 telegram_client/
+evaluation/
+backend/

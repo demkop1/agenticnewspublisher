@@ -33,14 +33,6 @@ def article_id(document: Document) -> str:
 
 
 class NewsPostgresStore:
-    """Persists extracted news articles as embeddings in Postgres via pgvector.
-
-    Storage is deduplicated by article URL: documents already present are
-    skipped before embedding (so they are never re-sent to the embeddings
-    API) and re-storing a known article upserts its row instead of
-    duplicating it.
-    """
-
     def __init__(
         self,
         embeddings: Optional[Embeddings] = None,

@@ -1,5 +1,5 @@
 services:
-  postgres:
+  news_postgres:
     image: pgvector/pgvector:pg18
     restart: unless-stopped
     environment:
@@ -7,9 +7,9 @@ services:
       POSTGRES_PASSWORD: news
       POSTGRES_DB: news
     ports:
-      - "5433:5432"
+      - "5432:5432"
     volumes:
-      - pgvector_data:/var/lib/postgresql/data
+      - pgvector_data:/var/lib/postgresql
 
 volumes:
   pgvector_data:
