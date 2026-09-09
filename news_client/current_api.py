@@ -75,8 +75,9 @@ if __name__ == "__main__":
 
     news = CurrentsAPIClient()
     # articles = news.get_top_headlines( query="Ukraine" )
-    articles = news.search( query="Ukraine AND war AND Zelensky" )
+    query = """ "Ukraine" AND (Russia OR Russian OR Putin OR Kremlin OR "Russian forces" OR "Russian army") AND ("war in Ukraine" OR invasion OR "Russian invasion" OR counteroffensive OR offensive OR frontline OR missiles OR drones OR Donetsk OR Luhansk OR Kharkiv OR Kyiv OR Mariupol OR Crimea OR sanctions)"""
+    articles = news.search( query=query )
     # print(articles[0].keys())
-
+    print(articles[0].get("url"), articles[0].get("source"))
     for a in articles[:5]:
         print(f"- {a['title']} {a['content']} ({a['source']['name']}) - { a['publishedAt'] }")

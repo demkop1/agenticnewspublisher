@@ -13,22 +13,23 @@ from agent.prompts import *
 from langchain_core.messages import SystemMessage, HumanMessage
 
 from agent.subgraph.search_graph import search_graph
+from agent.subgraph.publisher_graph import publisher_graph
 
 from langgraph.graph import StateGraph, START, END
 from langgraph.types import Command
 from agent.state import NewsState
-from storage.postgres_store import get_default_store
 
 llm = ChatOpenAI(model="gpt-5-mini")
 embeddings_model = OpenAIEmbeddings()
 currentsapi_client = CurrentsAPIClient()
 
-
 builder = StateGraph(NewsState)
 
 builder.add_node("search_graph", search_graph)
+builder.add_node("publisher_graph", publisher_graph)
 
 builder.add_edge(START, "search_graph")
-builder.add_edge("search_graph", END)
+builder.add_edge("search_graph", "publisher_graph")
+builder.add_edge("publisher_graph", END)
 
 graph = builder.compile()

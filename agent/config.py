@@ -7,6 +7,13 @@ from langgraph.graph import END
 import dotenv
 dotenv.load_dotenv()
 
+import uuid
+
+# Fixed namespace so the same article URL always maps to the same row id,
+# across processes and restarts.
+ARTICLE_ID_NAMESPACE = uuid.UUID("f0b3d9d0-6e1a-4b8b-9b0a-2f5c7a1e9d3c")
+EVENT_ID_NAMESPACE = uuid.UUID("6b3f8a2e-6e0a-4a3e-9f0a-9e0d3b7a1c2f")
+
 if not os.environ['USER_PROFILE']:
     if os.environ['USER_PROFILE_FILEPATH']:
         with open(os.environ['USER_PROFILE_FILEPATH'], 'r') as f:
@@ -27,3 +34,5 @@ AGENT_DESCRIPTIONS: dict[str, str] = {
 AGENT_NAMES = list(AGENT_DESCRIPTIONS.keys())
 
 MAX_CRITIQUE_ATTEMPTS = 3
+
+DUPLICATE_SIMILARITY_THRESHOLD = 0.3

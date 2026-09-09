@@ -17,8 +17,10 @@ def merge_agent_prompts(
 class NewsState(TypedDict):
     # user_profile: str = USER_PROFILE if USER_PROFILE else None
     search_query: str
-    articles: list[Document] = []
+    current_articles: list[Document] = []
     stored_article_ids: list[str] = []
+    stored_event_ids: list[str] = []
+    events: list[Document] = []
 
     published_articles: list[Document] = []
 

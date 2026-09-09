@@ -4,18 +4,16 @@ from typing import Iterable, Optional
 
 import dotenv
 
+from agent.config import ARTICLE_ID_NAMESPACE
+
 dotenv.load_dotenv()
 
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
 from langchain_postgres import PGVector
 
-# Fixed namespace so the same article URL always maps to the same row id,
-# across processes and restarts.
-_ID_NAMESPACE = uuid.UUID("f0b3d9d0-6e1a-4b8b-9b0a-2f5c7a1e9d3c")
 
-DEFAULT_COLLECTION_NAME = os.environ.get("POSTGRES_NEWS_COLLECTION", "news_articles")
-
+NEWS_COLLECTION_NAME = "news_articles" # The default
 
 def _connection_string() -> str:
     connection = os.environ.get("DATABASE_URL")
@@ -29,7 +27,7 @@ def _connection_string() -> str:
 
 def article_id(document: Document) -> str:
     key = document.metadata.get("url") or document.page_content
-    return str(uuid.uuid5(_ID_NAMESPACE, key))
+    return str(uuid.uuid5(ARTICLE_ID_NAMESPACE, key))
 
 
 class NewsPostgresStore:
@@ -37,7 +35,7 @@ class NewsPostgresStore:
         self,
         embeddings: Optional[Embeddings] = None,
         connection: Optional[str] = None,
-        collection_name: str = DEFAULT_COLLECTION_NAME,
+        collection_name: str = NEWS_COLLECTION_NAME,
     ):
         if embeddings is None:
             from langchain_openai import OpenAIEmbeddings
@@ -52,16 +50,11 @@ class NewsPostgresStore:
         )
 
     def upsert_articles(self, documents: Iterable[Document]) -> list[str]:
-        """Store articles that aren't already in the database.
-
-        Returns the ids (existing and newly stored) for every article passed
-        in, in order.
-        """
         documents = list(documents)
         if not documents:
             return []
 
-        ids = [article_id(d) for d in documents]
+        ids = [d.metadata.get("article_id") for d in documents]
         existing_ids = {d.id for d in self.store.get_by_ids(ids)}
 
         new_docs, new_ids, seen = [], [], set()
@@ -80,13 +73,6 @@ class NewsPostgresStore:
     def similarity_search(self, query: str, k: int = 5) -> list[Document]:
         return self.store.similarity_search(query, k=k)
 
-
-_default_store: Optional[NewsPostgresStore] = None
-
-
-def get_default_store(embeddings: Optional[Embeddings] = None) -> NewsPostgresStore:
-    """Lazily-created, process-wide store so the graph reuses one connection pool."""
-    global _default_store
-    if _default_store is None:
-        _default_store = NewsPostgresStore(embeddings=embeddings)
-    return _default_store
+def get_news_store(embeddings: Optional[Embeddings] = None) -> NewsPostgresStore:
+    _news_store = NewsPostgresStore(embeddings=embeddings, collection_name=NEWS_COLLECTION_NAME)
+    return _news_store

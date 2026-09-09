@@ -12,7 +12,68 @@ f"""
 You are an AI agent that generates the query to search for the recent news according to the following user profile and his preferences:
 {USER_PROFILE}.
 
-Type the query has to be surrounded by ** and be consistent with CurrentsAPI. Additionally you will also be given with directions on how to generate the search query, you have to comply with them.
+Additionally you will also be given with directions on how to generate the search query, you have to comply with them.
+
+Query construction rules:
+
+- Use AND between concept groups that should all be represented in the retrieved news.
+- Use OR between synonyms, alternative expressions, related entities, locations, or terms representing the same concept.
+- Use parentheses (...) to group alternatives connected with OR.
+- Use double quotation marks for multi-word phrases, for example "Russian forces" or "interest rates".
+- Use AND NOT only when excluding clearly irrelevant topics is useful.
+- Expand important concepts with reasonable synonyms, abbreviations, related people, organizations, places, and terminology when this improves recall.
+- Do not make the query unnecessarily restrictive. Prefer 2–4 meaningful concept groups rather than requiring many individual terms simultaneously.
+- Prioritize the user's strongest interests and the additional search directions.
+- Do not include explanatory text inside the query.
+- Generate exactly one CurrentsAPI-compatible Boolean query.
+- The final query must be surrounded by **.
+
+Few-shot examples:
+
+Example 1
+
+User profile / direction:
+Interested in the war in Ukraine, Russian military activity, attacks, occupied territories, and sanctions.
+
+Output:
+**Ukraine AND (Russia OR Russian OR Putin OR Kremlin OR "Russian forces" OR "Russian army") AND ("war in Ukraine" OR invasion OR "Russian invasion" OR counteroffensive OR offensive OR frontline OR missiles OR drones OR Donetsk OR Luhansk OR Kharkiv OR Kyiv OR Mariupol OR Crimea OR sanctions)**
+
+
+Example 2
+
+User profile / direction:
+Interested in major developments in artificial intelligence, especially new models released by OpenAI, Anthropic, Google, Meta, and xAI.
+
+Output:
+**("artificial intelligence" OR AI OR "large language model" OR LLM) AND (OpenAI OR Anthropic OR Google OR Meta OR xAI) AND (model OR release OR launch OR training OR inference OR benchmark OR agent OR chatbot)**
+
+
+Example 3
+
+User profile / direction:
+Interested in serious cybersecurity incidents affecting companies, governments, banks, hospitals, energy, or telecommunications. Do not include conferences or training.
+
+Output:
+**(cybersecurity OR "cyber attack" OR cyberattack OR ransomware OR malware OR hacking OR breach) AND (company OR government OR bank OR hospital OR energy OR telecom OR infrastructure) AND (attack OR incident OR compromised OR stolen OR disrupted) AND NOT (conference OR webinar OR course OR training)**
+
+Example 4
+
+User profile / direction:
+Interested in electric vehicle manufacturers and news involving batteries, recalls, fires, defects, and safety problems.
+
+Output:
+**("electric vehicle" OR EV OR "electric car") AND (Tesla OR BYD OR Rivian OR Lucid OR Ford OR Volkswagen OR BMW) AND (battery OR batteries OR recall OR recalls OR fire OR fires OR safety OR defect)**
+
+
+Example 5
+
+User profile / direction:
+Interested in Federal Reserve policy, interest-rate decisions, inflation, employment, and recession risks in the United States.
+
+Output:
+**("Federal Reserve" OR Fed OR "Jerome Powell") AND ("interest rate" OR "interest rates" OR "rate cut" OR "rate hike" OR "monetary policy") AND (inflation OR CPI OR employment OR jobs OR economy OR recession)**
+
+
 """
 )
 
@@ -67,6 +128,26 @@ fetched_articles ({num_fetched} total):
 
 published_articles (for judging redundancy):
 {published_articles}
+"""
+)
+
+EVENTS_EXTRACTION_SYSTEM_PROMPT = SystemMessage(
+"""
+You are an information-extraction agent. Given the text of a single news article,
+identify every discrete, concrete event it describes — something that happened, is
+happening, or is scheduled to happen at a specific point in time — as opposed to
+general background, opinion, or context.
+
+If the article describes no clear events, return an empty list.
+"""
+)
+
+EVENTS_EXTRACTION_PROMPT_TEMPLATE = HumanMessagePromptTemplate.from_template(
+"""
+Article published at: {published_at}
+
+Article text:
+{article}
 """
 )
 

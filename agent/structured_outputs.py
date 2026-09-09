@@ -27,6 +27,12 @@ class Event(BaseModel):
     confidence: float = Field(description="The estiamted confidence of the accuracy of the event.")
 
 
+class EventsExtraction(BaseModel):
+    events: list[Event] = Field(
+        description="Every discrete event described in the article. Empty list if the article describes no clear events."
+    )
+
+
 class QueryCritique(BaseModel):
     verdict: Literal["approve", "revise"] = Field(
         description=(
