@@ -11,6 +11,7 @@ dotenv.load_dotenv()
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
 from langchain_postgres import PGVector
+from langchain_text_splitters import TextSplitter
 
 
 NEWS_COLLECTION_NAME = "news_articles" # The default
@@ -49,16 +50,28 @@ class NewsPostgresStore:
             use_jsonb=True,
         )
 
-    def upsert_articles(self, documents: Iterable[Document]) -> list[str]:
+    def upsert_articles(
+        self, documents: Iterable[Document], splitter: Optional[TextSplitter] = None
+    ) -> list[str]:
         documents = list(documents)
         if not documents:
             return []
 
-        ids = [d.metadata.get("article_id") for d in documents]
+        if splitter is not None:
+            chunks, ids = [], []
+            for document in documents:
+                article_id_value = document.metadata.get("article_id")
+                for index, chunk in enumerate(splitter.split_documents([document])):
+                    chunks.append(chunk)
+                    ids.append(str(uuid.uuid5(ARTICLE_ID_NAMESPACE, f"{article_id_value}|{index}")))
+        else:
+            chunks = documents
+            ids = [d.metadata.get("article_id") for d in documents]
+
         existing_ids = {d.id for d in self.store.get_by_ids(ids)}
 
         new_docs, new_ids, seen = [], [], set()
-        for doc, doc_id in zip(documents, ids):
+        for doc, doc_id in zip(chunks, ids):
             if doc_id in existing_ids or doc_id in seen:
                 continue
             seen.add(doc_id)

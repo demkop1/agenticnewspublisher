@@ -25,6 +25,8 @@ from langgraph.graph import StateGraph, START, END
 from langgraph.types import Command
 from agent.state import NewsState
 
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+
 from storage.articles_vectorstore import get_news_store
 from storage.events_store import get_events_store
 
@@ -206,7 +208,7 @@ def store_articles_worker(state: NewsState) -> NewsState:
     articles_store = get_news_store(embeddings=embeddings_model)
     events_store = get_events_store()
 
-    stored_article_ids = articles_store.upsert_articles( state["current_articles"] )
+    stored_article_ids = articles_store.upsert_articles( state["current_articles"], splitter=config.ARTICLE_SPLITTER )
     stored_event_ids = events_store.upsert_events( state["events"] )
 
     return {

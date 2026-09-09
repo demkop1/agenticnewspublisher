@@ -3,6 +3,7 @@ import warnings
 import os
 
 from langgraph.graph import END
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 import dotenv
 dotenv.load_dotenv()
@@ -36,3 +37,8 @@ AGENT_NAMES = list(AGENT_DESCRIPTIONS.keys())
 MAX_CRITIQUE_ATTEMPTS = 3
 
 DUPLICATE_SIMILARITY_THRESHOLD = 0.3
+
+ARTICLE_SPLITTER = RecursiveCharacterTextSplitter(
+    chunk_size=1000,
+    chunk_overlap=150,
+)
