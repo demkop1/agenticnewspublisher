@@ -1,6 +1,6 @@
-# TelegramNewsAgent
+# NewsAgent
 
-An agentic news pipeline built on [LangGraph](https://github.com/langchain-ai/langgraph) that searches for news matching a user's stated interests, extracts and deduplicates discrete events from the coverage, and picks which of those events are worth writing up — as a step toward auto-publishing curated news to a Telegram channel.
+An agentic news pipeline built on [LangGraph](https://github.com/langchain-ai/langgraph) that searches for news matching a user's stated interests, extracts and deduplicates discrete events from the coverage, and picks which of those events are worth writing up — as a step toward auto-publishing curated news via API.
 
 > **Status:** actively evolving. The search → extract → dedupe → store pipeline runs end to end; the publishing side (picking events, retrieving supporting context, and writing the final article) is in progress. See [Status & roadmap](#status--roadmap).
 
@@ -63,7 +63,7 @@ Everything shares one `NewsState` (`agent/state.py`) as it flows through the gra
 
 ```bash
 git clone <this-repo>
-cd TelegramNewsAgent
+cd agenticnewspublisher
 pip install -r requirements.txt
 ```
 
@@ -131,4 +131,4 @@ user_profile.txt         # example/default user profile
 - [x] Event selection for publishing
 - [x] RAG query generation & retrieval of supporting article context
 - [ ] Final article generation from retrieved context
-- [ ] Publishing the generated article to a Telegram channel
+- [ ] Publishing the generated article through an API.
