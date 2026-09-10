@@ -38,7 +38,7 @@ def _load_events_from_db(limit: int = 100) -> list[Document]:
     store = get_events_store()
     with store._conn.cursor() as cur:
         cur.execute(
-            f"SELECT id, content, metadata FROM {EVENTS_TABLE_NAME} ORDER BY metadata ->> extracted_at LIMIT %s",
+            f"SELECT id, content, metadata FROM {EVENTS_TABLE_NAME} ORDER BY metadata ->> 'extracted_at' LIMIT %s",
             (limit,),
         )
         rows = cur.fetchall()
