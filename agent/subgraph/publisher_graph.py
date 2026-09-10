@@ -59,6 +59,8 @@ def _format_articles(articles: list[Document]) -> str:
     return "\n\n".join(
         f"- {a.page_content}\n  url: {a.metadata.get('url')}" for a in articles
     )
+
+
 def event_picker(state: NewsState) -> NewsState:
     events = _load_events_from_db()
 
@@ -81,7 +83,9 @@ def event_picker(state: NewsState) -> NewsState:
     return {"events": picked}
 
 def fetch_rag(state: NewsState) -> NewsState:
-    response = llm.invoke([RAG_SYSTEM_PROMPT_TEMPLATE])
+    response = llm.invoke([RAG_SYSTEM_PROMPT_TEMPLATE.format(
+        events=_format_articles(state["events"])
+    )])
     try:
         search_query = re.findall(STRING_EXTRACTOR, response.content)[-1]
     except IndexError:
