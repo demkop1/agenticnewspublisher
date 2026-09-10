@@ -55,3 +55,13 @@ class QueryCritique(BaseModel):
             "verdict is 'approve'."
         ),
     )
+
+#publisher_graph.py
+class EventSelection(BaseModel):
+    event_ids: list[str] = Field(
+        description=(
+            "The event_id values of the events worth publishing, chosen from the "
+            "candidate list, ordered most newsworthy first. Empty list if none of "
+            "the candidates are worth publishing."
+        )
+    )

@@ -39,6 +39,6 @@ MAX_CRITIQUE_ATTEMPTS = 3
 DUPLICATE_SIMILARITY_THRESHOLD = 0.3
 
 ARTICLE_SPLITTER = RecursiveCharacterTextSplitter(
-    chunk_size=1000,
+    chunk_size=500,
     chunk_overlap=150,
 )

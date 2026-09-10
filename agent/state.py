@@ -24,9 +24,10 @@ class NewsState(TypedDict):
 
     published_articles: list[Document] = []
 
+    agent_chats: Annotated[dict[str, list], merge_agent_prompts] = {}
+
     #Critic
     critique_attempts: int = 0
 
     #Orchestrator
-    next_agent: AGENT_NAMES
-    agent_chats: Annotated[dict[str, list], merge_agent_prompts] = {}
+    # next_agent: AGENT_NAMES

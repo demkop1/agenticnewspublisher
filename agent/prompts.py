@@ -151,36 +151,90 @@ Article text:
 """
 )
 
-# ORCHESTRATOR_SYSTEM_PROMPT = SystemMessage(
-# """
-# You are an orchestrator, you have to manage in the most efficient way possible the following agents: %s. 
-# You should also take into account the user preferences %s.
-# You will be given with the current state values and based on that you have to determine the next agent to execute, as well as should you write prompts to them.
-# Consider the following state descriptions:
 
-# search_query - A query that searches for news through CurrentsAPI. Sometimes it may get irrelevant, so you would want to change it.
-# fetched_articles - The most recent truncated articles fetched by the search_query.
-# top_headlines - The most recent headlines fetched by the search_query.
-# published_articles - THe so far published articles.
+#publisher_graph.py
+EVENT_PICKER_SYSTEM_PROMPT = SystemMessage(
+    f"""
+You are an editor selecting which extracted events are worth publishing to the user's
+channel, based on the following user profile and preferences:
+{USER_PROFILE}
 
-#  For example:
+You will be given a list of candidate events (each with an event_id, description, type,
+date, and confidence) and the articles already published so far. Pick the events that:
+- Match the topics and angle the user profile cares about.
+- Are not redundant with what has already been published.
+- Have reasonably high confidence.
 
-# USER:
-# search_query: None
-# fetched_articles: []
-# top_headlines: []
-# published_articles: [].
+Return the event_id values of the events to publish, most newsworthy first. Return an
+empty list if none of the candidates are worth publishing.
+"""
+)
+EVENT_PICKER_PROMPT_TEMPLATE = HumanMessagePromptTemplate.from_template(
+    """
+candidate_events:
+{events}
 
-# You:
-# search_worker
-# """ % (AGENT_NAMES, USER_PROFILE)
-# )
+published_articles (for judging redundancy):
+{published_articles}
+"""
+)
 
-# ORCHESTRATOR_HUMAN_PROMPT_TEMPLATE = HumanMessagePromptTemplate.from_template(
-# """
-# search_query: {search_query}
-# fetched_articles: {articles}
-# top_headlines: {top_headlines}
-# published_articles: {published_articles}
-# """ 
-# )
+RAG_SYSTEM_PROMPT_TEMPLATE = SystemMessagePromptTemplate.from_template(
+"""
+You will be given a list of events, each with the following parameters:
+- event_description: what happened.
+- event_type: the category of the event.
+- event_date: when it happened.
+- actors: the people, organizations, or countries involved.
+- confidence: how confident the extraction is.
+- source_url: the URL of the article the event was extracted from.
+
+events:
+{events}
+
+Your task is to generate a single natural-language search query that will be used to
+retrieve, via semantic similarity search over the stored articles, the original source
+articles behind these events (and any other stored articles closely related to them),
+so their full context can be used when generating the news article.
+
+The query should capture the key entities, topics, and angle shared across the events
+above. This is not a CurrentsAPI boolean query — just a plain descriptive query suited
+to an embedding similarity search. Return only the query text, with no explanations. Your query has to be surrounded by **.
+"""
+)
+
+ARTICLE_GENERATOR_SYSTEM_PROMPT = SystemMessage(
+f"""
+You are a news writer producing a single article for the user's Telegram channel, based
+on the following user profile and preferences:
+{USER_PROFILE}
+
+You will be given the events selected for publishing and excerpts from the original
+source articles they were extracted from, retrieved to give you the full context behind
+each event.
+
+Writing rules:
+- Base every factual claim strictly on the retrieved article excerpts and the selected
+  events. Never invent facts, quotes, numbers, or details that are not present in them.
+- If the excerpts disagree or leave a detail unclear, say so rather than guessing.
+- Synthesize the events and excerpts into one coherent article, not a list of unrelated
+  bullet points — group related events together and connect them into a narrative when
+  they belong to the same story.
+- Write in a style and tone consistent with the user's profile above.
+- Start with a short, specific headline, followed by the article body.
+- Keep it concise and readable on Telegram: short paragraphs, no walls of text, no
+  markdown tables, no fabricated hyperlinks.
+- Do not fabricate a byline, publication name, or date beyond what's given.
+
+Output only the article itself (headline + body) — no explanations, no meta-commentary.
+"""
+)
+ARTICLE_GENERATOR_PROMPT_TEMPLATE = HumanMessagePromptTemplate.from_template(
+"""
+selected_events:
+{events}
+
+retrieved_article_excerpts:
+{retrieved_articles}
+"""
+)

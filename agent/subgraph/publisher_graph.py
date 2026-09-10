@@ -2,12 +2,14 @@ import os
 import datetime
 import uuid
 from typing import Literal
-from agent.config import AGENT_NAMES, MAX_CRITIQUE_ATTEMPTS, EVENT_ID_NAMESPACE, DUPLICATE_SIMILARITY_THRESHOLD
+from agent.config import *
 
 import numpy as np
 
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+
+from pydantic import BaseModel, Field
 
 from langchain_core.documents import Document
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
@@ -18,20 +20,93 @@ from news_client.current_api import CurrentsAPIClient
 import re
 from agent.prompts import *
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
-from agent.structured_outputs import SchedulerDecision, QueryCritique, Event, EventsExtraction
+from langchain_core.prompts import HumanMessagePromptTemplate
+from agent.structured_outputs import EventSelection
 
 from langgraph.graph import StateGraph, START, END
 from langgraph.types import Command
 from agent.state import NewsState
 from storage.articles_vectorstore import get_news_store
+from storage.events_store import get_events_store, EVENTS_TABLE_NAME
 
 llm = ChatOpenAI(model="gpt-5-mini")
 embeddings_model = OpenAIEmbeddings()
 
 currentsapi_client = CurrentsAPIClient()
 
+def _load_events_from_db(limit: int = 100) -> list[Document]:
+    store = get_events_store()
+    with store._conn.cursor() as cur:
+        cur.execute(
+            f"SELECT id, content, metadata FROM {EVENTS_TABLE_NAME} ORDER BY metadata ->> extracted_at LIMIT %s",
+            (limit,),
+        )
+        rows = cur.fetchall()
+    return [Document(content, metadata=metadata, id=row_id) for row_id, content, metadata in rows]
+
+def _format_events(events: list[Document]) -> str:
+    if not events:
+        return "(none)"
+    return "\n\n".join(
+        f"- [{e.metadata.get('event_id', e.id)}] {e.page_content} "
+        f"(type={e.metadata.get('event_type')}, date={e.metadata.get('event_date')}, "
+        f"confidence={e.metadata.get('confidence')})"
+        for e in events
+    )
+def _format_articles(articles: list[Document]) -> str:
+    if not articles:
+        return "(none)"
+    return "\n\n".join(
+        f"- {a.page_content}\n  url: {a.metadata.get('url')}" for a in articles
+    )
+def event_picker(state: NewsState) -> NewsState:
+    events = _load_events_from_db()
+
+    if not events:
+        return {"events": []}
+
+    structured_llm = llm.with_structured_output(EventSelection)
+    messages = [
+        EVENT_PICKER_SYSTEM_PROMPT,
+        EVENT_PICKER_PROMPT_TEMPLATE.format(
+            events=_format_events(events),
+            published_articles=_format_articles(state.get("published_articles", [])),
+        ),
+    ]
+    selection: EventSelection = structured_llm.invoke(messages)
+
+    events_by_id = {e.metadata.get("event_id", e.id): e for e in events}
+    picked = [events_by_id[event_id] for event_id in selection.event_ids if event_id in events_by_id]
+
+    return {"events": picked}
+
+def fetch_rag(state: NewsState) -> NewsState:
+    response = llm.invoke([RAG_SYSTEM_PROMPT_TEMPLATE])
+    try:
+        search_query = re.findall(STRING_EXTRACTOR, response.content)[-1]
+    except IndexError:
+        search_query = response
+
+    articles_store = get_news_store(embeddings=embeddings_model)
+    documents_retrieved = articles_store.similarity_search(search_query)
+    
+    return {
+        "current_articles": documents_retrieved
+    }
+
+def generate_article(state: NewsState) -> NewsState:
+    # response = llm.invoke([RAG_SYSTEM_PROMPT_TEMPLATE])
+    return {}
+
 builder = StateGraph(NewsState)
 
-builder.add_edge(START, END)
+builder.add_node("event_picker", event_picker)
+builder.add_node("fetch_rag", fetch_rag)
+builder.add_node("generate_article", generate_article)
+
+builder.add_edge(START, "event_picker")
+builder.add_edge("event_picker", "fetch_rag")
+builder.add_edge("fetch_rag", "generate_article")
+builder.add_edge("generate_article", END)
 
 publisher_graph = builder.compile()

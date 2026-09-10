@@ -59,8 +59,8 @@ if __name__ == "__main__":
     load_dotenv(PROJECT_ROOT)
     
     news = NewsAPIClient()
-    articles = news.get_top_headlines(query="war in Ukraine")
-    # articles = news.search( query="war in Ukraine" )
+    # articles = news.get_top_headlines(query="war in Ukraine")
+    articles = news.search( query="war in Ukraine" )
     # print(articles[0].keys())
 
     for a in articles[:5]:

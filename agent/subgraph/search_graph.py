@@ -92,14 +92,18 @@ def criticize(state: NewsState) -> Command[Literal["search_worker", "create_even
     published_urls = {a.metadata.get("url") for a in published_articles}
     duplicate_count = sum(1 for a in articles if a.metadata.get("url") in published_urls)
 
+    chat_history = state.get("agent_chats", {}).get("criticize", [])
+    formatted_prompt = CRITIC_PROMPT_TEMPLATE.format(
+        search_query=state.get("search_query"),
+        num_fetched=len(articles),
+        articles=_format_articles(articles),
+        published_articles=_format_articles(published_articles),
+    )
+
     messages = [
         CRITIC_SYSTEM_PROMPT,
-        CRITIC_PROMPT_TEMPLATE.format(
-            search_query=state.get("search_query"),
-            num_fetched=len(articles),
-            articles=_format_articles(articles),
-            published_articles=_format_articles(published_articles),
-        ),
+        *[m for m in chat_history],
+        formatted_prompt,
     ]
 
     critique: QueryCritique = structured_llm.invoke(messages)
@@ -118,6 +122,10 @@ def criticize(state: NewsState) -> Command[Literal["search_worker", "create_even
                         f"Critic feedback: {critique.feedback}\n"
                         f"Suggested query: {critique.revised_query}"
                     )
+                ],
+                "criticize": [
+                    formatted_prompt,
+                    AIMessage(f"Verdict: {critique.verdict}, Feedback: {critique.feedback}, Suggested Query: {critique.revised_query}")
                 ]
             },
         },
